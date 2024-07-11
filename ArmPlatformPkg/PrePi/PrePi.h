@@ -20,8 +20,12 @@
 #include <Library/HobLib.h>
 #include <Library/SerialPortLib.h>
 #include <Library/ArmPlatformLib.h>
+#include <TransferListLib.h>
 
 extern UINT64  mSystemMemoryEnd;
+extern volatile UINT64 tlBaseAddr;
+extern volatile UINT64 tlRegX1;
+extern volatile UINT64 tlFDTAddr;
 
 RETURN_STATUS
 EFIAPI

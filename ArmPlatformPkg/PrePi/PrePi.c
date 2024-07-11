@@ -19,8 +19,13 @@
 #include <Ppi/GuidedSectionExtraction.h>
 #include <Ppi/ArmMpCoreInfo.h>
 #include <Ppi/SecPerformance.h>
+#include <libfdt.h>
 
 #include "PrePi.h"
+
+volatile UINT64 tlBaseAddr = 0;
+volatile UINT64 tlRegX1 = 0;
+volatile UINT64 tlFDTAddr = 0;
 
 #define IS_XIP()  (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > mSystemMemoryEnd) ||\
                   ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= FixedPcdGet64 (PcdSystemMemoryBase)))
@@ -28,6 +33,7 @@
 UINT64  mSystemMemoryEnd = FixedPcdGet64 (PcdSystemMemoryBase) +
                            FixedPcdGet64 (PcdSystemMemorySize) - 1;
 
+static struct transfer_list_header *bl33_tl;
 EFI_STATUS
 GetPlatformPpi (
   IN  EFI_GUID  *PpiGuid,
@@ -68,7 +74,9 @@ PrePiMain (
   UINTN                       CharCount;
   UINTN                       StacksSize;
   FIRMWARE_SEC_PERFORMANCE    Performance;
-
+  VOID                        *DeviceTreeBase;
+  INT32                       NodeOffset;
+  CONST CHAR8                 *Compatible;
   // If ensure the FD is either part of the System Memory or totally outside of the System Memory (XIP)
   ASSERT (
     IS_XIP () ||
@@ -90,11 +98,59 @@ PrePiMain (
                 __DATE__
                 );
   SerialPortWrite ((UINT8 *)Buffer, CharCount);
-
+  CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "Register Values from BL31 \n\r"
+                  );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "FDT address at register x0:  0x%lx\n\r", tlFDTAddr
+                  );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "TL signature at register x1:  0x%lx\n\r", tlRegX1
+                  );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "Reserved must be zero at register x2\n\r"
+                  );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "tl_base_pa at register x3:  0x%lx\n\r", tlBaseAddr
+                  );
+    // SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    // CharCount = AsciiSPrint (
+    //               Buffer,
+    //               sizeof (Buffer),
+    //               "Transfer_List:  0x%lx\n\r", transferListFlag
+    //               );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
+    CharCount = AsciiSPrint (
+                  Buffer,
+                  sizeof (Buffer),
+                  "Inside ArmPlatformPkg/PrePi/PrePi.c \n\r"
+                  );
+    SerialPortWrite ((UINT8 *)Buffer, CharCount);
   // Initialize the Debug Agent for Source Level Debugging
   InitializeDebugAgent (DEBUG_AGENT_INIT_POSTMEM_SEC, NULL, NULL);
   SaveAndSetDebugTimerInterrupt (TRUE);
-
+  if(transfer_list_check_header((void *)tlBaseAddr) != TL_OPS_NON) {
+		bl33_tl = (VOID *)tlBaseAddr; /* saved TL address from BL2 */
+    transfer_list_dump(bl33_tl);
+    DeviceTreeBase = (void *)tlFDTAddr;
+    NodeOffset=fdt_path_offset(DeviceTreeBase, "/");
+    Compatible=fdt_getprop (DeviceTreeBase,NodeOffset, "compatible", NULL);
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"Compatible property: %a\n", Compatible));
+	}
   // Declare the PI/UEFI memory region
   HobList = HobConstructor (
               (VOID *)UefiMemoryBase,

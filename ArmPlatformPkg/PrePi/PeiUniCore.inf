@@ -49,12 +49,14 @@
   DebugAgentLib
   PrePiLib
   ArmPlatformLib
+  TransferListLib
   ArmPlatformStackLib
   MemoryAllocationLib
   HobLib
   PrePiHobListPointerLib
   PlatformPeiLib
   MemoryInitPeiLib
+  FdtLib
 
 [Ppis]
   gArmMpCoreInfoPpiGuid

@@ -5,9 +5,21 @@
 //
 //
 
+//Declaring global variables to hold register contents
+.extern tlBaseAddr
+.extern tlRegX1
+.extern tlFDTAddr
+
 #include <AsmMacroIoLibV8.h>
 
 ASM_FUNC(_ModuleEntryPoint)
+//copying register contents to global variables
+  adr x4, tlFDTAddr  // Loading the address of tlFDTAddr into x4
+  str x0, [x4]
+  adr x4, tlRegX1  // Loading the address of tlRegX1 into x4
+  str x1, [x4]
+  adr x4, tlBaseAddr  // Loading the address of tlBaseAddr into x4
+  str x3, [x4]
   // Do early platform specific actions
   bl    ASM_PFX(ArmPlatformPeiBootAction)
 

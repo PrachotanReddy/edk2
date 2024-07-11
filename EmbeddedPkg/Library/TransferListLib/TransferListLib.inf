@@ -1,0 +1,24 @@
+#/* @file
+# Added at ARM by Prachotan Bathi, July 2024
+#*/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = TransferListLib
+  FILE_GUID                      = 6399cd09-7775-46e0-9182-e4fe093adb02
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = TransferListLib
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+
+[Sources]
+  TransferListLib.c
