@@ -56,6 +56,15 @@
   # we assume the OS will handle the FrameBuffer from the UEFI GOP information.
   gArmPlatformTokenSpaceGuid.PcdGopDisableOnExitBootServices|FALSE|BOOLEAN|0x0000003D
 
+[PcdsPatchableInModule.common]
+  # System Memory
+  # When RME is supported by the FVP the top 64MB of DRAM1 (i.e. at the top
+  # of the 32bit address space) is reserved for four-world support in TF-A.
+  # Therefore, set the default System Memory size to (2GB - 64MB).
+  # This is modified based on the availablity of a mem node in the FDT.
+  gArmTokenSpaceGuid.PcdSystemMemoryBase|0x80000000|UINT64|0x00000001
+  gArmTokenSpaceGuid.PcdSystemMemorySize|0x7C000000|UINT64|0x00000002
+
 [PcdsFixedAtBuild.common]
   gArmPlatformTokenSpaceGuid.PcdCoreCount|1|UINT32|0x00000039
   gArmPlatformTokenSpaceGuid.PcdClusterCount|1|UINT32|0x00000038

@@ -22,7 +22,7 @@
 #include <Library/ArmPlatformLib.h>
 #include <TransferListLib.h>
 
-extern UINT64  mSystemMemoryEnd;
+//extern UINT64  mSystemMemoryEnd;
 extern volatile UINT64 tlBaseAddr;
 extern volatile UINT64 tlRegX1;
 extern volatile UINT64 tlFDTAddr;
@@ -81,6 +81,14 @@ GetPlatformPpi (
 VOID
 ArchInitialize (
   VOID
+  );
+
+BOOLEAN
+EFIAPI
+FindMemnodeInDt (
+  IN VOID    *DevTreeBase,
+  OUT UINT64  *SysMemBase,
+  OUT UINT64  *SysMemSize
   );
 
 #endif /* _PREPI_H_ */
