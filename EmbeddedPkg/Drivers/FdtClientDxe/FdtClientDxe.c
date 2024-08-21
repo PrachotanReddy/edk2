@@ -438,6 +438,16 @@ InitializeFdtClientDxe (
   // Register a protocol notify for the EDKII Platform Has Device Tree
   // Protocol.
   //
+  Status = gBS->InstallProtocolInterface (
+                  &ImageHandle,
+                  &gEdkiiPlatformHasDeviceTreeGuid,
+                  EFI_NATIVE_INTERFACE,
+                  NULL
+                  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "%a: InstallProtocolInterface(): %r\n", __func__, Status));
+    return Status;
+  }
   Status = gBS->CreateEvent (
                   EVT_NOTIFY_SIGNAL,
                   TPL_CALLBACK,

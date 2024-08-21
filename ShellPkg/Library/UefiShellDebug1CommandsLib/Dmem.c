@@ -208,7 +208,10 @@ ShellCommandRunDmem (
               Acpi20TableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
             }
-
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gFdtTableGuid)) {
+              DtbTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
             if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiAcpi10TableGuid)) {
               AcpiTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;

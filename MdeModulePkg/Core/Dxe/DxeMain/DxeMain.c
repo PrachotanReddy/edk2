@@ -481,12 +481,12 @@ DxeMain (
   }
 
   //Demonstrating the presence of the GUIDeed FDTHob by installing FDT Table
-  GuidHob = GetNextGuidHob (&gFdtHobGuid, HobStart);
-  if (GuidHob != NULL) {
-    Status = CoreInstallConfigurationTable (&gFdtTableGuid, (VOID *)(GET_GUID_HOB_DATA (GuidHob)));
-    ASSERT_EFI_ERROR (Status);
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"FdtTable installed\n"));
-  }
+  // GuidHob = GetNextGuidHob (&gFdtHobGuid, HobStart);
+  // if (GuidHob != NULL) {
+  //   Status = CoreInstallConfigurationTable (&gFdtTableGuid, (VOID *)(GET_GUID_HOB_DATA (GuidHob)));
+  //   ASSERT_EFI_ERROR (Status);
+  //   DEBUG ((DEBUG_INFO | DEBUG_LOAD,"FdtTable installed\n"));
+  // }
 
   //
   // Get the Protocols that were passed in from PEI to DXE through GUIDed HOBs
