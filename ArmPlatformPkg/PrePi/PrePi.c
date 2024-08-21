@@ -27,7 +27,9 @@
 
 UINT64  mSystemMemoryEnd = FixedPcdGet64 (PcdSystemMemoryBase) +
                            FixedPcdGet64 (PcdSystemMemorySize) - 1;
-
+volatile UINT64 tlBaseAddr = 0;
+volatile UINT64 tlRegX1 = 0;
+volatile UINT64 tlFdtAddr = 0;
 /**
   Obtain a PPI from the list of PPIs provided by the platform code.
 
@@ -107,7 +109,36 @@ PrePiMain (
                 __DATE__
                 );
   SerialPortWrite ((UINT8 *)Buffer, CharCount);
-
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "Register Values from BL31 \n\r"
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "FDT address at register x0:  0x%lx\n\r", tlFdtAddr
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "TL signature at register x1:  0x%lx\n\r", tlRegX1
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "Reserved must be zero at register x2\n\r"
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "tl_base_pa at register x3:  0x%lx\n\r", tlBaseAddr
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
   // Initialize the Debug Agent for Source Level Debugging
   InitializeDebugAgent (DEBUG_AGENT_INIT_POSTMEM_SEC, NULL, NULL);
   SaveAndSetDebugTimerInterrupt (TRUE);
