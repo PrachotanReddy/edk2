@@ -53,6 +53,7 @@
   PrePiHobListPointerLib
   PlatformPeiLib
   MemoryInitPeiLib
+  TransferListLib
 
 [Ppis]
   gArmMpCoreInfoPpiGuid

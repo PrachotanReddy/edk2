@@ -91,7 +91,8 @@
 
   AcpiLib|EmbeddedPkg/Library/AcpiLib/AcpiLib.inf
   FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
-
+  TransferListLib|EmbeddedPkg/Library/TransferListLib/TransferListLib.inf
+  
   # Shell libraries
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
   FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
@@ -229,6 +230,7 @@
   EmbeddedPkg/Library/AcpiLib/AcpiLib.inf
   EmbeddedPkg/Library/DebugAgentTimerLibNull/DebugAgentTimerLibNull.inf
   EmbeddedPkg/Library/FdtLib/FdtLib.inf
+  EmbeddedPkg/Library/TransferListLib/TransferListLib.inf
   EmbeddedPkg/Library/PrePiHobLib/PrePiHobLib.inf
   EmbeddedPkg/Library/PrePiMemoryAllocationLib/PrePiMemoryAllocationLib.inf
 

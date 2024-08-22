@@ -12,7 +12,7 @@
 #include <AsmMacroIoLibV8.h>
 
 ASM_FUNC(_ModuleEntryPoint)
-  adr x4, tlFdtAddr  // Loading the address of tlFDTAddr into x4
+  adr x4, tlFdtAddr  // Loading the address of tlFdtAddr into x4
   str x0, [x4]
   adr x4, tlRegX1  // Loading the address of tlRegX1 into x4
   str x1, [x4]

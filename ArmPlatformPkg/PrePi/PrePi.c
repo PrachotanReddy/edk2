@@ -152,6 +152,14 @@ PrePiMain (
               );
   PrePeiSetHobList (HobList);
 
+  //check if the TransferList is valid and dump the contents
+  if(transfer_list_check_header((void *)tlBaseAddr) != TL_OPS_NON) {
+    transfer_list_dump((VOID *)tlBaseAddr);
+  }
+  else{
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"No Valid Transfer List found"));
+  }
+  
   // Initialize MMU and Memory HOBs (Resource Descriptor HOBs)
   Status = MemoryPeim (UefiMemoryBase, FixedPcdGet32 (PcdSystemMemoryUefiRegionSize));
   ASSERT_EFI_ERROR (Status);

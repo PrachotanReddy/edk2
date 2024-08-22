@@ -42,6 +42,7 @@
   ArmPlatformLib|ArmPlatformPkg/Library/ArmPlatformLibNull/ArmPlatformLibNull.inf
   ArmPlatformStackLib|ArmPlatformPkg/Library/ArmPlatformStackLib/ArmPlatformStackLib.inf
   ArmMmuLib|ArmPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
+  TransferListLib|EmbeddedPkg/Library/TransferListLib/TransferListLib.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   CacheMaintenanceLib|ArmPkg/Library/ArmCacheMaintenanceLib/ArmCacheMaintenanceLib.inf
@@ -103,6 +104,7 @@
   ArmPlatformPkg/Drivers/SP805WatchdogDxe/SP805WatchdogDxe.inf
 
   ArmPlatformPkg/Library/ArmPlatformLibNull/ArmPlatformLibNull.inf
+  EmbeddedPkg/Library/TransferListLib/TransferListLib.inf
   ArmPlatformPkg/Library/ArmPlatformStackLib/ArmPlatformStackLib.inf
   ArmPlatformPkg/Library/HdLcd/HdLcd.inf
   ArmPlatformPkg/Library/LcdHwNullLib/LcdHwNullLib.inf
