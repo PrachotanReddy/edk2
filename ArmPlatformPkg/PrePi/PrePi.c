@@ -19,6 +19,7 @@
 #include <Ppi/GuidedSectionExtraction.h>
 #include <Ppi/ArmMpCoreInfo.h>
 #include <Ppi/SecPerformance.h>
+#include <libfdt.h>
 
 #include "PrePi.h"
 
@@ -87,6 +88,12 @@ PrePiMain (
   UINTN                       CharCount;
   UINTN                       StacksSize;
   FIRMWARE_SEC_PERFORMANCE    Performance;
+  VOID                        *NewBase;
+  INT32                       NodeOffset;
+  CONST CHAR8                 *Compatible;
+  UINTN                       FdtSize;
+  UINTN                       FdtPages;
+  UINT64                      *FdtHobData;
 
   // If ensure the FD is either part of the System Memory or totally outside of the System Memory (XIP)
   ASSERT (
@@ -153,11 +160,35 @@ PrePiMain (
   PrePeiSetHobList (HobList);
 
   //check if the TransferList is valid and dump the contents
-  if(transfer_list_check_header((void *)tlBaseAddr) != TL_OPS_NON) {
+  if(transfer_list_check_header((VOID *)tlBaseAddr) != TL_OPS_NON) {
     transfer_list_dump((VOID *)tlBaseAddr);
   }
   else{
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,"No Valid Transfer List found"));
+  }
+  if (fdt_check_header ((VOID *)tlFdtAddr) != 0) {
+    DEBUG ((DEBUG_ERROR, "No valid DTB %p passed\n", tlFdtAddr));
+    }
+  else {
+    NodeOffset=fdt_path_offset((VOID *)tlFdtAddr, "/");
+    Compatible=fdt_getprop ((VOID *)tlFdtAddr,NodeOffset, "compatible", NULL);
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"Valid FDT with compatible property: %a\n", Compatible));
+
+    //moving original dt to new region
+    FdtSize  = fdt_totalsize ((VOID *)tlFdtAddr) + 0x6f;
+    FdtPages = EFI_SIZE_TO_PAGES (FdtSize);
+    NewBase  = AllocatePages (FdtPages);
+    if (NewBase == NULL) {
+      ASSERT (0);
+    }
+    fdt_open_into ((VOID *)tlFdtAddr, NewBase, EFI_PAGES_TO_SIZE (FdtPages));
+      //Building FDT GuidHob
+    FdtHobData = BuildGuidHob (&gFdtHobGuid, sizeof (*FdtHobData));
+    if (FdtHobData == NULL) {
+      ASSERT (0);
+    }
+
+    *FdtHobData = (UINTN)NewBase;
   }
   
   // Initialize MMU and Memory HOBs (Resource Descriptor HOBs)

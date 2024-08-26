@@ -473,6 +473,11 @@ ShellCommandRunDmem (
               continue;
             }
 
+            if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gFdtTableGuid)) {
+              DtbTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
+              continue;
+            }
+            
             if (CompareGuid (&gST->ConfigurationTable[TableWalker].VendorGuid, &gEfiSmbiosTableGuid)) {
               SmbiosTableAddress = (UINT64)(UINTN)gST->ConfigurationTable[TableWalker].VendorTable;
               continue;
