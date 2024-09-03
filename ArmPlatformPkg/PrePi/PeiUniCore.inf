@@ -98,5 +98,5 @@
   gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiLoaderData
 
 [Pcd]
-  gArmTokenSpaceGuid.PcdSystemMemoryBase
-  gArmTokenSpaceGuid.PcdSystemMemorySize
+  gArmTokenSpaceGuid.PcdSystemMemoryBase|0x80000000
+  gArmTokenSpaceGuid.PcdSystemMemorySize|0x7C000000

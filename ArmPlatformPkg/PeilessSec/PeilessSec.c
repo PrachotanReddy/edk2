@@ -8,12 +8,12 @@
 
 #include "PeilessSec.h"
 
-#define IS_XIP()  (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > mSystemMemoryEnd) ||\
-                  ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= FixedPcdGet64 (PcdSystemMemoryBase)))
+#define IS_XIP()  (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > (PcdGet64 (PcdSystemMemoryBase) + PcdGet64 (PcdSystemMemorySize) - 1)) ||\
+                  ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= PcdGet64 (PcdSystemMemoryBase)))
 
-UINT64  mSystemMemoryEnd = FixedPcdGet64 (PcdSystemMemoryBase) +
-                           FixedPcdGet64 (PcdSystemMemorySize) - 1;
-
+volatile UINT64 tlBaseAddr = 0;
+volatile UINT64 tlRegX1 = 0;
+volatile UINT64 tlFdtAddr = 0;
 /**
   Obtain a PPI from the list of PPIs provided by the platform code.
 
@@ -47,6 +47,69 @@ GetPlatformPpi (
   return EFI_NOT_FOUND;
 }
 
+BOOLEAN
+EFIAPI
+FindMemnodeInDt (
+  IN VOID    *DevTreeBase,
+  OUT UINT64  *SysMemBase,
+  OUT UINT64  *SysMemSize
+  )
+{
+  INT32        MemoryNode;
+  INT32        AddressCells;
+  INT32        SizeCells;
+  INT32        Length;
+  CONST UINT32  *Prop;
+
+
+  if (fdt_check_header (DevTreeBase) != 0) {
+    return FALSE;
+  }
+
+  //
+  // Look for a node called "memory" at the lowest level of the tree
+  //
+  MemoryNode = fdt_path_offset (DevTreeBase, "/memory");
+  if (MemoryNode <= 0) {
+    return FALSE;
+  }
+  //
+  // Retrieve the #address-cells and #size-cells properties
+  // from the root node, or use the default if not provided.
+  //
+  AddressCells = 1;
+  SizeCells    = 1;
+
+  Prop = fdt_getprop (DevTreeBase, 0, "#address-cells", &Length);
+  if (Length == 4) {
+    AddressCells = fdt32_to_cpu (*Prop);
+  }
+
+  Prop = fdt_getprop (DevTreeBase, 0, "#size-cells", &Length);
+  if (Length == 4) {
+    SizeCells = fdt32_to_cpu (*Prop);
+  }
+
+  //
+  // Now find the 'reg' property of the /memory node, and read the first
+  // range listed.
+  //
+  Prop = fdt_getprop (DevTreeBase, MemoryNode, "reg", &Length);
+  if (Length < (AddressCells + SizeCells) * sizeof (UINT32)) {
+    return FALSE;
+  }
+
+  if (AddressCells > 1) {
+    *SysMemBase = ((UINT64)fdt32_to_cpu(Prop[0]) << 32) | fdt32_to_cpu(Prop[1]);
+  }
+  Prop += AddressCells;
+
+  if (SizeCells > 1) {
+    *SysMemSize = ((UINT64)fdt32_to_cpu(Prop[0]) << 32) | fdt32_to_cpu(Prop[1]);
+  }
+  return TRUE;
+}
+
 /**
   SEC main routine.
 
@@ -71,12 +134,17 @@ SecMain (
   UINTN                       CharCount;
   UINTN                       StacksSize;
   FIRMWARE_SEC_PERFORMANCE    Performance;
-
+  VOID                        *NewBase;
+  INT32                       NodeOffset;
+  CONST CHAR8                 *Compatible;
+  UINTN                       FdtSize;
+  UINTN                       FdtPages;
+  UINT64                      *FdtHobData;
   // If ensure the FD is either part of the System Memory or totally outside of the System Memory (XIP)
   ASSERT (
     IS_XIP () ||
-    ((FixedPcdGet64 (PcdFdBaseAddress) >= FixedPcdGet64 (PcdSystemMemoryBase)) &&
-     ((UINT64)(FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= (UINT64)mSystemMemoryEnd))
+    ((FixedPcdGet64 (PcdFdBaseAddress) >= PcdGet64 (PcdSystemMemoryBase)) &&
+     ((UINT64)(FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= (UINT64)(PcdGet64 (PcdSystemMemoryBase) + PcdGet64 (PcdSystemMemorySize) - 1)))
     );
 
   // Initialize the architecture specific bits
@@ -93,6 +161,36 @@ SecMain (
                 __DATE__
                 );
   SerialPortWrite ((UINT8 *)Buffer, CharCount);
+CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "Register Values from BL31 \n\r"
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "FDT address at register x0:  0x%lx\n\r", tlFdtAddr
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "TL signature at register x1:  0x%lx\n\r", tlRegX1
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "Reserved must be zero at register x2\n\r"
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
+  CharCount = AsciiSPrint (
+                Buffer,
+                sizeof (Buffer),
+                "tl_base_pa at register x3:  0x%lx\n\r", tlBaseAddr
+                );
+  SerialPortWrite ((UINT8 *)Buffer, CharCount);
 
   // Initialize the Debug Agent for Source Level Debugging
   InitializeDebugAgent (DEBUG_AGENT_INIT_POSTMEM_SEC, NULL, NULL);
@@ -106,6 +204,38 @@ SecMain (
               (VOID *)StackBase // The top of the UEFI Memory is reserved for the stack
               );
   PrePeiSetHobList (HobList);
+
+//check if the TransferList is valid and dump the contents
+  if(transfer_list_check_header((VOID *)tlBaseAddr) != TL_OPS_NON) {
+    transfer_list_dump((VOID *)tlBaseAddr);
+  }
+  else{
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"No Valid Transfer List found"));
+  }
+  if (fdt_check_header ((VOID *)tlFdtAddr) != 0) {
+    DEBUG ((DEBUG_ERROR, "No valid DTB %p passed\n", tlFdtAddr));
+    }
+  else {
+    NodeOffset=fdt_path_offset((VOID *)tlFdtAddr, "/");
+    Compatible=fdt_getprop ((VOID *)tlFdtAddr,NodeOffset, "compatible", NULL);
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,"Valid FDT with compatible property: %a\n", Compatible));
+
+    //moving original dt to new region
+    FdtSize  = fdt_totalsize ((VOID *)tlFdtAddr) + 0x6f;
+    FdtPages = EFI_SIZE_TO_PAGES (FdtSize);
+    NewBase  = AllocatePages (FdtPages);
+    if (NewBase == NULL) {
+      ASSERT (0);
+    }
+    fdt_open_into ((VOID *)tlFdtAddr, NewBase, EFI_PAGES_TO_SIZE (FdtPages));
+      //Building FDT GuidHob
+    FdtHobData = BuildGuidHob (&gFdtHobGuid, sizeof (*FdtHobData));
+    if (FdtHobData == NULL) {
+      ASSERT (0);
+    }
+
+    *FdtHobData = (UINTN)NewBase;
+  }
 
   // Initialize MMU and Memory HOBs (Resource Descriptor HOBs)
   Status = MemoryPeim (UefiMemoryBase, FixedPcdGet32 (PcdSystemMemoryUefiRegionSize));

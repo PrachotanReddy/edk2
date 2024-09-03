@@ -23,11 +23,9 @@
 
 #include "PrePi.h"
 
-#define IS_XIP()  (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > mSystemMemoryEnd) ||\
-                  ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= FixedPcdGet64 (PcdSystemMemoryBase)))
+#define IS_XIP()  (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > (PcdGet64 (PcdSystemMemoryBase) + PcdGet64 (PcdSystemMemorySize) - 1)) ||\
+                  ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= PcdGet64 (PcdSystemMemoryBase)))
 
-UINT64  mSystemMemoryEnd = FixedPcdGet64 (PcdSystemMemoryBase) +
-                           FixedPcdGet64 (PcdSystemMemorySize) - 1;
 volatile UINT64 tlBaseAddr = 0;
 volatile UINT64 tlRegX1 = 0;
 volatile UINT64 tlFdtAddr = 0;
@@ -64,6 +62,69 @@ GetPlatformPpi (
   return EFI_NOT_FOUND;
 }
 
+BOOLEAN
+EFIAPI
+FindMemnodeInDt (
+  IN VOID    *DevTreeBase,
+  OUT UINT64  *SysMemBase,
+  OUT UINT64  *SysMemSize
+  )
+{
+  INT32        MemoryNode;
+  INT32        AddressCells;
+  INT32        SizeCells;
+  INT32        Length;
+  CONST UINT32  *Prop;
+
+
+  if (fdt_check_header (DevTreeBase) != 0) {
+    return FALSE;
+  }
+
+  //
+  // Look for a node called "memory" at the lowest level of the tree
+  //
+  MemoryNode = fdt_path_offset (DevTreeBase, "/memory");
+  if (MemoryNode <= 0) {
+    return FALSE;
+  }
+  //
+  // Retrieve the #address-cells and #size-cells properties
+  // from the root node, or use the default if not provided.
+  //
+  AddressCells = 1;
+  SizeCells    = 1;
+
+  Prop = fdt_getprop (DevTreeBase, 0, "#address-cells", &Length);
+  if (Length == 4) {
+    AddressCells = fdt32_to_cpu (*Prop);
+  }
+
+  Prop = fdt_getprop (DevTreeBase, 0, "#size-cells", &Length);
+  if (Length == 4) {
+    SizeCells = fdt32_to_cpu (*Prop);
+  }
+
+  //
+  // Now find the 'reg' property of the /memory node, and read the first
+  // range listed.
+  //
+  Prop = fdt_getprop (DevTreeBase, MemoryNode, "reg", &Length);
+  if (Length < (AddressCells + SizeCells) * sizeof (UINT32)) {
+    return FALSE;
+  }
+
+  if (AddressCells > 1) {
+    *SysMemBase = ((UINT64)fdt32_to_cpu(Prop[0]) << 32) | fdt32_to_cpu(Prop[1]);
+  }
+  Prop += AddressCells;
+
+  if (SizeCells > 1) {
+    *SysMemSize = ((UINT64)fdt32_to_cpu(Prop[0]) << 32) | fdt32_to_cpu(Prop[1]);
+  }
+  return TRUE;
+}
+
 /**
   SEC main routine.
 
@@ -98,8 +159,8 @@ PrePiMain (
   // If ensure the FD is either part of the System Memory or totally outside of the System Memory (XIP)
   ASSERT (
     IS_XIP () ||
-    ((FixedPcdGet64 (PcdFdBaseAddress) >= FixedPcdGet64 (PcdSystemMemoryBase)) &&
-     ((UINT64)(FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= (UINT64)mSystemMemoryEnd))
+    ((FixedPcdGet64 (PcdFdBaseAddress) >= PcdGet64 (PcdSystemMemoryBase)) &&
+    ((UINT64)(FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) <= (UINT64)(PcdGet64 (PcdSystemMemoryBase) + PcdGet64 (PcdSystemMemorySize) - 1)))
     );
 
   // Initialize the architecture specific bits

@@ -18,7 +18,9 @@ ASM_FUNC(_ModuleEntryPoint)
   str x1, [x4]
   adr x4, tlBaseAddr  // Loading the address of tlBaseAddr into x4
   str x3, [x4]
+  mov   x17, x0 //move dtb base address
   // Do early platform specific actions
+  bl    ASM_PFX(DiscoverDramFromDt)
   bl    ASM_PFX(ArmPlatformPeiBootAction)
 
 _SetSVCMode:
@@ -26,7 +28,10 @@ _SetSVCMode:
 // to install the stacks at the bottom of the Firmware Device (case the FD is located
 // at the top of the DRAM)
 _SystemMemoryEndInit:
-  ldr   x1, mSystemMemoryEnd
+  ldr   x1, PcdGet64 (PcdSystemMemoryBase)
+  ldr   x2, PcdGet64 (PcdSystemMemorySize)
+  sub   x2, x2, #1
+  add   x1, x1, x2
 
 _SetupStackPosition:
   // r1 = SystemMemoryTop
@@ -104,3 +109,26 @@ _GetStackBase:
 
 _NeverReturn:
   b _NeverReturn
+
+ASM_PFX(DiscoverDramFromDt):
+  mov   x29, x30            // preserve LR
+
+  // Setting the sp to a temp stack, can also hardcode sp using-mov sp, #0xFC000000
+  adrp x0, temp_stack
+  add x0, x0, :lo12:temp_stack
+  add x0, x0, #4096
+  mov sp, x0
+
+  mov x0,x17
+  adr x1,PcdGet64(PcdSystemMemoryBase)
+  adr x2,PcdGet64(PcdSystemMemorySize)
+  bl    FindMemnodeInDt
+  cbz   x0, .Lout
+
+.Lout:
+  ret    x29
+
+//creating a temporary stack to use to parse the DT
+.data
+.align 4
+temp_stack: .zero 4096

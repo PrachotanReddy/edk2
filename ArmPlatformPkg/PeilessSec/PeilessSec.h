@@ -28,9 +28,12 @@
 #include <Ppi/ArmMpCoreInfo.h>
 #include <Ppi/GuidedSectionExtraction.h>
 #include <Ppi/SecPerformance.h>
+#include <TransferListLib.h>
+#include <libfdt.h>
 
-extern UINT64  mSystemMemoryEnd;
-
+extern volatile UINT64 tlBaseAddr;
+extern volatile UINT64 tlRegX1;
+extern volatile UINT64 tlFdtAddr;
 /**
   Entrypoint of the memory PEIM driver.
 
@@ -71,6 +74,14 @@ BuildMemoryTypeInformationHob (
 VOID
 ArchInitialize (
   VOID
+  );
+
+BOOLEAN
+EFIAPI
+FindMemnodeInDt (
+  IN VOID    *DevTreeBase,
+  OUT UINT64  *SysMemBase,
+  OUT UINT64  *SysMemSize
   );
 
 #endif /* PEILESSSEC_H_ */

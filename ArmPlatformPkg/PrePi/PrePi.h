@@ -22,7 +22,6 @@
 #include <Library/ArmPlatformLib.h>
 #include <TransferListLib.h>
 
-extern UINT64  mSystemMemoryEnd;
 extern volatile UINT64 tlBaseAddr;
 extern volatile UINT64 tlRegX1;
 extern volatile UINT64 tlFdtAddr;
